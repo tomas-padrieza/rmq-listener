@@ -68,12 +68,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     ..Default::default()
                 },
                 {
-                    let mut args = FieldTable::default();
-                    args.insert(
+                    let mut arguments = FieldTable::default();
+                    arguments.insert(
                         "x-queue-type".into(),
                         AMQPValue::LongString("quorum".into()),
                     );
-                    args
+                    arguments
                 },
             )
             .await?;
