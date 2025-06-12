@@ -1,5 +1,5 @@
 use futures_lite::stream::StreamExt;
-use lapin::{Connection, ConnectionProperties, options::*, types::FieldTable};
+use lapin::{Connection, ConnectionProperties, options::*, types::AMQPValue, types::FieldTable};
 use std::env;
 
 fn load_env_var(key: &str) -> String {
@@ -45,7 +45,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .exchange_declare(
             &exchange_name,
             lapin::ExchangeKind::Topic,
-            ExchangeDeclareOptions::default(),
+            ExchangeDeclareOptions {
+                durable: true,
+                ..Default::default()
+            },
             FieldTable::default(),
         )
         .await?;
@@ -54,14 +57,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Declare and bind each queue
     for queue_name in queue_names {
-        let routing_key = format!("{}.#", queue_name);
+        let routing_key = format!("{}.*", queue_name);
 
         // Declare a queue
         let queue = channel
             .queue_declare(
                 &queue_name,
-                QueueDeclareOptions::default(),
-                FieldTable::default(),
+                QueueDeclareOptions {
+                    durable: true,
+                    ..Default::default()
+                },
+                {
+                    let mut args = FieldTable::default();
+                    args.insert(
+                        "x-queue-type".into(),
+                        AMQPValue::LongString("quorum".into()),
+                    );
+                    args
+                },
             )
             .await?;
 
